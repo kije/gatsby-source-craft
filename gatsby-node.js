@@ -236,7 +236,7 @@ async function addExtraFragments(reporter) {
     for (let [fragmentName, fragmentBody] of Object.entries(mandatoryFragments)) {
         fragmentName += '.graphql';
         const filePath = path.join(internalFragmentDir, fragmentName);
-        fs.writeFile(filePath, fragmentBody);
+        await fs.writeFile(filePath, fragmentBody);
     }
     reporter.info("Found " + fragments.length + " additional fragments");
     // Look at the configured folder
@@ -585,9 +585,10 @@ async function getSourcingConfig(gatsbyApi) {
     });
 }
 async function ensureFragmentsExist(reporter) {
-    reporter.info("Clearing previous fragments.");
-    await fs.remove(internalFragmentDir, { recursive: true });
     reporter.info("Writing default fragments.");
     await writeDefaultFragments(reporter);
     await addExtraFragments(reporter);
 }
+exports.onPreInit = async () => {
+    await fs.remove(internalFragmentDir, { recursive: true });
+};
