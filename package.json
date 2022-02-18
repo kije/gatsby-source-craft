@@ -30,11 +30,13 @@
     "gatsby-graphql-source-toolkit": "^2.0.0",
     "gatsby-source-filesystem": "^4.1.0",
     "node-fetch": "^2.6.1",
-    "p-retry": "^4.6.1"
+    "p-retry": "^4.6.1",
+    "proper-lockfile": "^4.1.2"
   },
   "devDependencies": {
     "@types/fs-extra": "^9.0.13",
     "@types/node-fetch": "^2.5.12",
+    "@types/proper-lockfile": "^4.1.2",
     "dotenv": "^8.2.0",
     "gatsby": "^4.0.0",
     "graphql": "^15.0.0",

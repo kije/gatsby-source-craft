@@ -9,6 +9,7 @@ import { CreateResolversArgs,  NodePluginArgs, Reporter } from 'gatsby';
 import {createRemoteFileNode} from "gatsby-source-filesystem";
 import { RequestInit } from "node-fetch";
 import pRetry, { Options as RetryOptions } from "p-retry";
+import lockfile from 'proper-lockfile';
 
 type SourcePluginOptions = {
     craftGqlUrl: string,
@@ -750,12 +751,23 @@ async function getSourcingConfig(gatsbyApi: NodePluginArgs) {
 }
 
 async function ensureFragmentsExist(reporter: Reporter) {
-    reporter.info("Writing default fragments.");
-    await writeDefaultFragments(reporter);
-    await addExtraFragments(reporter);
-}
+    const wasLocked =  lockfile.checkSync(internalFragmentDir);
+    const release = await lockfile.lock(internalFragmentDir, {
+        retries: 5
+    });
+    try {
+        if (wasLocked) {
+            // dir was already locked when we cheked before aquiring the lock. So we can assume another process already did the work when we reach this point
+            return;
+        }
 
+        reporter.info("Clearing previous fragments.");
+        await fs.rmdir(internalFragmentDir, {recursive: true});
 
-exports.onPreInit = async () => {
-    await fs.remove(internalFragmentDir, {recursive: true});
+        reporter.info("Writing default fragments.");
+        await writeDefaultFragments(reporter);
+        await addExtraFragments(reporter);
+    } finally {
+        release();
+    }
 }

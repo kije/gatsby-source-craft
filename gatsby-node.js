@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const gatsby_source_filesystem_1 = require("gatsby-source-filesystem");
 const p_retry_1 = __importDefault(require("p-retry"));
+const proper_lockfile_1 = __importDefault(require("proper-lockfile"));
 const fs = require("fs-extra");
 const fetch = require("node-fetch");
 const path = require("path");
@@ -585,10 +586,22 @@ async function getSourcingConfig(gatsbyApi) {
     });
 }
 async function ensureFragmentsExist(reporter) {
-    reporter.info("Writing default fragments.");
-    await writeDefaultFragments(reporter);
-    await addExtraFragments(reporter);
+    const wasLocked = proper_lockfile_1.default.checkSync(internalFragmentDir);
+    const release = await proper_lockfile_1.default.lock(internalFragmentDir, {
+        retries: 5
+    });
+    try {
+        if (wasLocked) {
+            // dir was already locked when we cheked before aquiring the lock. So we can assume another process already did the work when we reach this point
+            return;
+        }
+        reporter.info("Clearing previous fragments.");
+        await fs.rmdir(internalFragmentDir, { recursive: true });
+        reporter.info("Writing default fragments.");
+        await writeDefaultFragments(reporter);
+        await addExtraFragments(reporter);
+    }
+    finally {
+        release();
+    }
 }
-exports.onPreInit = async () => {
-    await fs.remove(internalFragmentDir, { recursive: true });
-};
